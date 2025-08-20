@@ -24,7 +24,6 @@ class CreateTempImportTable extends Migration
             $table->string('numero_interior')->nullable();
             $table->string('colonia');
             $table->string('cp');
-            $table->timestamps();
         });
     }
 

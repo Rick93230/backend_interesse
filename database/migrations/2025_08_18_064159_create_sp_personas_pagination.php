@@ -28,30 +28,65 @@ class CreateSpPersonasPagination extends Migration
                 SET v_total_pages = CEIL(v_total / v_limit);
 
                 SELECT JSON_OBJECT(
-                    'data', (
-                        SELECT JSON_ARRAYAGG(
+                'data', 
+                    COALESCE(
+                        (SELECT JSON_ARRAYAGG(
                             JSON_OBJECT(
-                                'id', id,
-                                'nombre', nombre,
-                                'paterno', paterno,
-                                'materno', materno,
-                                'created_at', created_at,
-                                'updated_at', updated_at
+                                'id', sub.id,
+                                'nombre', sub.nombre_completo,
+                                'telefonos', sub.telefonos,
+                                'direcciones', sub.direcciones,
+                                'created_at', sub.created_at,
+                                'updated_at', sub.updated_at
                             )
                         )
                         FROM (
-                            SELECT id, nombre, paterno, materno, created_at, updated_at
-                            FROM personas
-                            ORDER BY id
+                            SELECT 
+                                p.id,
+                                CONCAT_WS(' ', p.nombre, p.paterno, COALESCE(p.materno, '')) as nombre_completo,
+                                COALESCE(
+                                    (SELECT JSON_ARRAYAGG(t.numero) 
+                                     FROM telefonos t 
+                                     WHERE t.persona_id = p.id), 
+                                    JSON_ARRAY()
+                                ) as telefonos,
+                                COALESCE(
+                                    (SELECT JSON_ARRAYAGG(
+                                        CONCAT(
+                                            d.calle, 
+                                            CASE WHEN d.numero_exterior IS NOT NULL 
+                                                 THEN CONCAT(' ', d.numero_exterior) 
+                                                 ELSE '' END,
+                                            CASE WHEN d.numero_interior IS NOT NULL 
+                                                 THEN CONCAT(' ', d.numero_interior) 
+                                                 ELSE '' END,
+                                            CASE WHEN d.colonia IS NOT NULL 
+                                                 THEN CONCAT(' ', d.colonia) 
+                                                 ELSE '' END,
+                                            CASE WHEN d.cp IS NOT NULL 
+                                                 THEN CONCAT(' CP ', d.cp) 
+                                                 ELSE '' END
+                                        )
+                                    ) 
+                                    FROM direcciones d 
+                                    WHERE d.persona_id = p.id), 
+                                    JSON_ARRAY()
+                                ) as direcciones,
+                                p.created_at,
+                                p.updated_at
+                            FROM personas p
+                            ORDER BY p.id
                             LIMIT v_limit OFFSET v_offset
-                        ) AS sub
+                        ) as sub
+                        ), 
+                        JSON_ARRAY()
                     ),
-                    'meta', JSON_OBJECT(
-                        'total_registros', v_total,
-                        'total_paginas', v_total_pages,
-                        'pagina_actual', p_pagina
-                    )
-                ) AS resultado;
+                'meta', JSON_OBJECT(
+                    'total_registros', v_total,
+                    'total_paginas', v_total_pages,
+                    'pagina_actual', p_pagina
+                )
+            ) AS resultado;
             END
         ");
     }

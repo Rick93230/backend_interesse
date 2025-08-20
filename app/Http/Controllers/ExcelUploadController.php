@@ -63,7 +63,7 @@ class ExcelUploadController extends Controller
             INTO TABLE temp_import 
             FIELDS TERMINATED BY ',' 
             ENCLOSED BY '\"' 
-            LINES TERMINATED BY '\\n' 
+            LINES TERMINATED BY '\\r\\n' 
             IGNORE 1 LINES 
             (nombre, paterno, materno, telefono, calle, numero_exterior, numero_interior, colonia, cp)",
             addslashes($csvPath)
